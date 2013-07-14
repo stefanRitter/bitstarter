@@ -26,19 +26,26 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "";
 var rest = require('restler');
 
 var assertFileExists = function(infile) {
   var instr = infile.toString();
-  if(!fs.existsSync(instr)) {
+  if (!fs.existsSync(instr)) {
     console.log("%s does not exist. Exiting.", instr);
     process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
   }
   return instr;
 };
 
-var assertURLFileExists = function(url) {
-  // TODO
+var assertURLExists = function(url) {
+  // validate URL
+  var urlRegex = new RegExp("^(http[s]?:\\/\\/(www\\.)?|ftp:\\/\\/(www\\.)?|www\\.){1}([0-9A-Za-z-\\.@:%_\\+~#=]+)+((\\.[a-zA-Z]{2,3})+)(/(.)*)?(\\?(.)*)?");
+  if (! urlRegex.test(url)) {
+    console.log("%s not a valid URL. Exiting.", url);
+    process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
+  }
+  return url;
 };
 
 var cheerioHtmlFile = function(htmlfile) {
@@ -72,14 +79,25 @@ var doCheck = function(file, checks) {
   console.log(outJson);
 };
 
-if(require.main == module) {
+if (require.main == module) {
   program
     .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
     .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-    .option('-u, --url <url>', 'URL to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+    .option('-u, --url <url>', 'URL to index.html', clone(assertURLExists), URL_DEFAULT)
     .parse(process.argv);
 
-  doCheck(program.file, program.checks);
+  if (program.url) {
+    rest.get(program.url).on('complete', function(result) {
+      if (result instanceof Error) {
+        console.log('Error: ' + result.message);
+        process.exit(1);
+      } else {
+        console.log('do it with url: ' + result);
+      }
+    });
+  } else {
+    doCheck(program.file, program.checks);
+  }
 } else {
   exports.checkHtmlFile = checkHtmlFile;
 }
