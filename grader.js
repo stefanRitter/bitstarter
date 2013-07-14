@@ -26,7 +26,7 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
-var URL_DEFAULT = "";
+var URL_DEFAULT = "No URL";
 var rest = require('restler');
 
 var assertFileExists = function(infile) {
@@ -57,7 +57,11 @@ var loadChecks = function(checksfile) {
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
-  $ = cheerioHtmlFile(htmlfile);
+  if (typeof htmlfile === 'string') {
+    $ = cheerio.load(htmlfile);
+  } else {
+    $ = cheerioHtmlFile(htmlfile);
+  }
   var checks = loadChecks(checksfile).sort();
   var out = {};
   for(var ii in checks) {
@@ -92,7 +96,7 @@ if (require.main == module) {
         console.log('Error: ' + result.message);
         process.exit(1);
       } else {
-        console.log('do it with url: ' + result);
+        doCheck(result, program.checks);
       }
     });
   } else {
